@@ -1,16 +1,24 @@
-# React + Vite
+# IG Analyzer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A privacy-focused, client-side web application for analyzing Instagram follower connections.
 
-Currently, two official plugins are available:
+Unlike third-party applications that require account credentials and risk account suspension via API scraping, IG Analyzer processes official Instagram data exports locally within the user's browser. This ensures that no login information is shared and user data never leaves the device.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
 
-## React Compiler
+* **Client-Side Processing:** All data parsing occurs locally in the browser memory; no data is uploaded to any server.
+* **Connection Analysis:** Identifies users who do not follow back, mutual connections, and fans.
+* **Safety Filtering:** Includes a time-buffer filter to hide accounts followed within the last 30 days to prevent accidental unfollowing of new connections.
+* **Heuristic Filtering:** Algorithms to detect and filter out likely business or commercial accounts from results.
+* **Data Management:** Supports search functionality and CSV export for external analysis.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+* React
+* Vite
+* Tailwind CSS
+* Lucide React
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Disclaimer
+
+This project is a third-party tool and is not affiliated, associated, authorized, endorsed by, or in any way officially connected with Meta or Instagram.

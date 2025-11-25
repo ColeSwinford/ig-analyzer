@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, CheckCircle, HelpCircle, Server, AlertTriangle, Camera, Lock, Download, Search, ShieldCheck, Filter, X } from 'lucide-react';
+import { Upload, CheckCircle, HelpCircle, Server, AlertTriangle, Camera, Lock, Download, Search, ShieldCheck, Filter, Briefcase } from 'lucide-react';
 
 const InstagramAnalyzer = () => {
   const [view, setView] = useState('guide'); // 'guide', 'upload', 'results'
@@ -18,7 +18,8 @@ const InstagramAnalyzer = () => {
 
   // --- FILTER STATE ---
   const [searchTerm, setSearchTerm] = useState('');
-  const [hideSafeAccounts, setHideSafeAccounts] = useState(false); // Default false, user can toggle on
+  const [hideSafeAccounts, setHideSafeAccounts] = useState(false);
+  const [hideBusinessAccounts, setHideBusinessAccounts] = useState(false);
   
   // --- LOGIC: Parsing ---
   const handleFileUpload = (e, type) => {
@@ -41,15 +42,12 @@ const InstagramAnalyzer = () => {
                 let foundUsername = item.string_list_data?.[0]?.value;
                 let foundTimestamp = item.string_list_data?.[0]?.timestamp;
                 
-                // Fallbacks for different export formats
                 if (!foundUsername && item.title) foundUsername = item.title;
                 if (!foundUsername && item.media_list_data?.[0]?.value) foundUsername = item.media_list_data[0].value;
 
                 if (foundUsername) {
                     list.push({
                         username: foundUsername,
-                        // Ensure timestamp is in milliseconds for easier comparison
-                        // Instagram usually gives seconds, so we multiply by 1000 if it looks small (e.g. < 10 billion)
                         timestamp: foundTimestamp ? (foundTimestamp < 10000000000 ? foundTimestamp * 1000 : foundTimestamp) : Date.now()
                     });
                 }
@@ -97,20 +95,31 @@ const InstagramAnalyzer = () => {
     setView('results');
   };
 
+  // --- LOGIC: Heuristic Business Detection ---
+  const isLikelyBusiness = (username) => {
+    const businessKeywords = [
+        'official', 'shop', 'store', 'boutique', 'clothing', 'apparel', 'brand',
+        'agency', 'media', 'marketing', 'studio', 'design', 'art', 'photo', 'film',
+        'music', 'band', 'records', 'entertainment',
+        'realtor', 'realestate', 'estate', 'home', 'interiors',
+        'fitness', 'gym', 'coach', 'training', 'health', 'beauty', 'hair', 'nails', 'makeup',
+        'cafe', 'coffee', 'food', 'kitchen', 'eats', 'bakery', 'restaurant',
+        'tech', 'app', 'software', 'solutions', 'systems',
+        'inc', 'llc', 'ltd', 'co', 'club', 'society', 'community', 'blog', 'news',
+        'podcast', 'radio', 'tv'
+    ];
+    const lower = username.toLowerCase();
+    return businessKeywords.some(keyword => lower.includes(keyword));
+  };
+
   // --- LOGIC: Export to CSV ---
   const downloadCSV = (data, filename) => {
     if (!data || data.length === 0) return;
-    
-    // Header row
     let csvContent = "data:text/csv;charset=utf-8,Username,Profile URL,Date Followed\n";
-    
-    // Data rows
     data.forEach(user => {
         const date = new Date(user.timestamp).toLocaleDateString();
         csvContent += `${user.username},https://instagram.com/${user.username},${date}\n`;
     });
-
-    // Create download link
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -127,7 +136,7 @@ const InstagramAnalyzer = () => {
   const cardClass = "bg-[#121212] border border-[#363636] rounded-xl overflow-hidden";
   const inputClass = "bg-[#262626] border border-[#363636] text-white text-sm rounded-lg block w-full p-2.5 focus:ring-1 focus:ring-[#A8A8A8] focus:border-[#A8A8A8] outline-none";
 
-  // --- COMPONENT: Guide & Upload (Unchanged logic, just simplified for length) ---
+  // --- COMPONENTS ---
   const renderGuide = () => (
     <div className={`max-w-5xl w-full ${cardClass} text-white flex flex-col md:flex-row`}>
       <div className="p-10 md:w-1/2 flex flex-col justify-center">
@@ -208,22 +217,24 @@ const InstagramAnalyzer = () => {
     </div>
   );
 
-  // --- COMPONENT: Results View (NEW FEATURES HERE) ---
   const renderResults = () => {
-    // 1. Select the base list
     let baseList = [];
     if (activeTab === 'not_following_back') baseList = notFollowingBack;
     else if (activeTab === 'fans') baseList = fans;
     else baseList = mutuals;
 
-    // 2. Apply Search Filter
+    // Apply Filters
     let filteredList = baseList.filter(u => u.username.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    // 3. Apply Safety Filter (Only for 'Not Following Back')
-    if (activeTab === 'not_following_back' && hideSafeAccounts) {
-        const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-        const now = Date.now();
-        filteredList = filteredList.filter(u => (now - u.timestamp) > thirtyDaysInMs);
+    if (activeTab === 'not_following_back') {
+        if (hideSafeAccounts) {
+            const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            filteredList = filteredList.filter(u => (now - u.timestamp) > thirtyDaysInMs);
+        }
+        if (hideBusinessAccounts) {
+            filteredList = filteredList.filter(u => !isLikelyBusiness(u.username));
+        }
     }
 
     const emptyMessage = activeTab === 'not_following_back' ? "Clean record! Everyone follows you back." 
@@ -236,11 +247,7 @@ const InstagramAnalyzer = () => {
         <div className="p-6 flex justify-between items-center border-b border-[#363636]">
           <h2 className="text-lg font-semibold">Analysis Results</h2>
           <div className="flex gap-2">
-             <button 
-                onClick={() => downloadCSV(filteredList, activeTab)} 
-                className="bg-[#262626] hover:bg-[#363636] text-white px-3 py-2 rounded-lg text-sm transition flex items-center gap-2"
-                title="Download CSV"
-             >
+             <button onClick={() => downloadCSV(filteredList, activeTab)} className="bg-[#262626] hover:bg-[#363636] text-white px-3 py-2 rounded-lg text-sm transition flex items-center gap-2">
                 <Download size={16} /> <span className="hidden sm:inline">Export</span>
              </button>
              <button onClick={() => setView('upload')} className={igSecondaryButton}>Start Over</button>
@@ -263,33 +270,37 @@ const InstagramAnalyzer = () => {
             </button>
         </div>
 
-        {/* Toolbar: Search + Safety Filter */}
-        <div className="p-4 border-b border-[#363636] bg-[#1a1a1a] flex flex-col sm:flex-row gap-4 items-center">
-            {/* Search Bar */}
-            <div className="relative w-full sm:flex-1">
+        {/* Toolbar */}
+        <div className="p-4 border-b border-[#363636] bg-[#1a1a1a] flex flex-col gap-4">
+            <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <Search size={16} className="text-[#A8A8A8]" />
                 </div>
-                <input 
-                    type="text" 
-                    className={`${inputClass} pl-10`} 
-                    placeholder="Search username..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <input type="text" className={`${inputClass} pl-10`} placeholder="Search username..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
 
-            {/* Safety Filter Toggle (Only show on 'Not Back' tab) */}
             {activeTab === 'not_following_back' && (
-                <button 
-                    onClick={() => setHideSafeAccounts(!hideSafeAccounts)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm transition font-medium w-full sm:w-auto justify-center
-                        ${hideSafeAccounts ? 'bg-green-900/30 text-green-400 border border-green-900' : 'bg-[#262626] text-[#A8A8A8] border border-[#363636] hover:bg-[#363636]'}
-                    `}
-                >
-                    {hideSafeAccounts ? <ShieldCheck size={16} /> : <Filter size={16} />}
-                    {hideSafeAccounts ? "New friends hidden" : "Hide new friends (30d)"}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <button 
+                        onClick={() => setHideSafeAccounts(!hideSafeAccounts)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition font-medium border
+                            ${hideSafeAccounts ? 'bg-green-900/30 text-green-400 border-green-900' : 'bg-[#262626] text-[#A8A8A8] border-[#363636] hover:bg-[#363636]'}
+                        `}
+                    >
+                        {hideSafeAccounts ? <ShieldCheck size={16} /> : <Filter size={16} />}
+                        {hideSafeAccounts ? "New friends hidden" : "Hide new friends (30d)"}
+                    </button>
+
+                    <button 
+                        onClick={() => setHideBusinessAccounts(!hideBusinessAccounts)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm transition font-medium border
+                            ${hideBusinessAccounts ? 'bg-blue-900/30 text-blue-400 border-blue-900' : 'bg-[#262626] text-[#A8A8A8] border-[#363636] hover:bg-[#363636]'}
+                        `}
+                    >
+                        {hideBusinessAccounts ? <Briefcase size={16} /> : <Briefcase size={16} />}
+                        {hideBusinessAccounts ? "Businesses hidden" : "Hide likely businesses"}
+                    </button>
+                </div>
             )}
         </div>
 
@@ -310,11 +321,15 @@ const InstagramAnalyzer = () => {
                                       {user.username ? user.username.charAt(0).toUpperCase() : '?'}
                                   </div>
                                   <div>
-                                      <span className="font-semibold text-sm text-white block">{user.username}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-sm text-white block">{user.username}</span>
+                                        {isLikelyBusiness(user.username) && !hideBusinessAccounts && (
+                                            <span className="text-[10px] bg-[#262626] text-[#A8A8A8] px-1.5 py-0.5 rounded border border-[#363636]">Biz?</span>
+                                        )}
+                                      </div>
                                       <span className="text-xs text-[#555]">Followed: {new Date(user.timestamp).toLocaleDateString()}</span>
                                   </div>
                               </div>
-                              
                               <a href={`https://instagram.com/${user.username}`} target="_blank" rel="noreferrer"
                                   className="text-[#0095F6] text-xs font-semibold hover:text-white transition px-4 py-2 rounded-lg bg-[#262626] hover:bg-[#363636]">
                                   View
@@ -324,7 +339,6 @@ const InstagramAnalyzer = () => {
                   </ul>
               )}
           </div>
-          {/* Footer count */}
           <div className="p-2 bg-[#121212] border-t border-[#363636] text-center text-[10px] text-[#555]">
               Showing {filteredList.length} users
           </div>
@@ -333,7 +347,7 @@ const InstagramAnalyzer = () => {
     );
   };
 
-  return (
+return (
     <div className="min-h-screen w-full bg-black text-white font-sans flex flex-col items-center justify-center p-4">
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold mb-2 tracking-tight flex items-center justify-center gap-2">
@@ -348,11 +362,15 @@ const InstagramAnalyzer = () => {
         {view === 'results' && renderResults()}
       </div>
       
-      <div className="mt-12 text-[#363636] text-xs">
-        Not affiliated with Meta or Instagram
+      {/* Footer Attribution */}
+      <div className="mt-12 mb-6 text-center space-y-2">
+        <p className="text-[#363636] text-xs">Not affiliated with Meta or Instagram</p>
+        <p className="text-[#A8A8A8] text-xs">
+            Designed and built by <a href="https://github.com/ColeSwinford/ig-analyzer" target="_blank" rel="noreferrer" className="text-white hover:text-[#0095F6] transition font-medium">Cole Swinford</a>
+        </p>
       </div>
     </div>
   );
-};
+}
 
 export default InstagramAnalyzer;
