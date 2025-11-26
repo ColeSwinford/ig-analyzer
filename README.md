@@ -1,6 +1,7 @@
 # IG Analyzer
-
 A privacy-focused, client-side web application for analyzing Instagram follower connections.
+
+![screenshot of app homepage](public/IG_Analyzer.png)
 
 Unlike third-party applications that require account credentials and risk account suspension via API scraping, IG Analyzer processes official Instagram data exports locally within the user's browser. This ensures that no login information is shared and user data never leaves the device.
 
