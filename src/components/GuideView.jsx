@@ -12,9 +12,9 @@ export const GuideView = ({ onStart }) => (
       <ol className="space-y-4 text-[#A8A8A8] text-sm list-decimal list-inside leading-relaxed">
         <li className="pl-2">Open <strong>Instagram Settings</strong>.</li>
         <li className="pl-2">Go to <strong>Accounts Center</strong> ➝ <strong>Your information and permissions</strong>.</li>
-        <li className="pl-2">Select <strong>Download your information</strong> ➝ <strong>Download or transfer</strong>.</li>
-        <li className="pl-2">Select <strong>Some of your information</strong> ➝ <strong>Followers and following</strong>.</li>
-        <li className="pl-2">Select <strong>Download to device</strong>.</li>
+        <li className="pl-2">Select <strong>Export your information</strong> ➝ <strong>Export to device</strong>.</li>
+        <li className="pl-2">Select <strong>Followers and following</strong>.</li>
+        <li className="pl-2">Date range: <strong>all time</strong>.</li>
         <li className="pl-2"><span className="text-white font-medium">Format: JSON</span> (Required).</li>
       </ol>
       <div className="mt-8">
