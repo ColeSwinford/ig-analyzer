@@ -1,4 +1,5 @@
 # IG Analyzer
+
 A privacy-focused, client-side web application for analyzing Instagram follower connections.
 
 ![screenshot of app homepage](public/IG_Analyzer.png)
