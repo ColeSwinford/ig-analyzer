@@ -1,4 +1,4 @@
-# IG Analyzer
+# [IG Analyzer](https://ig-analyzer.coleswinford.com/)
 
 A privacy-focused, client-side web application for analyzing Instagram follower connections.
 
